@@ -5,9 +5,9 @@ Instant Photorealistic 3D Human Creation from a Single Image using IDOL.
 ## Requirements
 
 - NVIDIA GPU with 24GB+ VRAM (recommended)
-- CUDA 11.8 compatible drivers
+- CUDA 12.x compatible drivers
 - Python 3.10+
-- SMPL-X registration (for full functionality)
+- **SMPL-X models** (requires registration - see below)
 
 ## Quick Start
 
@@ -18,26 +18,41 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-### SMPL-X Setup (Required)
+### ⚠️ SMPL-X Setup (REQUIRED)
 
-Register at: https://smpl-x.is.tue.mpg.de/
+IDOL requires SMPL-X body models which must be downloaded separately due to licensing:
 
-Then run:
+1. **Register** at: https://smpl-x.is.tue.mpg.de/
+2. **Download**: `models_smplx_v1_1.zip`
+3. **Extract** to: `IDOL/lib/models/deformers/smplx/SMPLX/`
+
+Required files:
+```
+IDOL/lib/models/deformers/smplx/SMPLX/
+├── SMPLX_NEUTRAL.pkl
+├── SMPLX_MALE.pkl
+└── SMPLX_FEMALE.pkl
+```
+
+Or run the interactive script:
 ```bash
+cd IDOL
 bash scripts/fetch_template.sh
 ```
 
 ### Usage
 
 ```bash
-# Reconstruction mode
-python run_demo.py --render_mode reconstruct
+cd IDOL
 
-# Animation mode
-python run_demo.py --render_mode novel_pose
+# Reconstruction mode (input → 3D reconstruction)
+python run_demo.py --input_path image.png --render_mode reconstruct
 
-# 360-degree view
-python run_demo.py --render_mode novel_pose_A
+# Animation mode (input → animated 3D)
+python run_demo.py --input_path image.png --render_mode novel_pose
+
+# 360-degree A-pose view
+python run_demo.py --input_path image.png --render_mode novel_pose_A
 
 # Start API server
 python api.py
@@ -51,9 +66,17 @@ python api.py
 
 ## Render Modes
 
-- `reconstruct` - Reconstruct the input image
-- `novel_pose` - Generate with novel poses (animation)
-- `novel_pose_A` - Generate 360-degree view with A-pose
+| Mode | Description |
+|------|-------------|
+| `reconstruct` | Reconstruct the input image as 3D |
+| `novel_pose` | Generate with novel poses (animation) |
+| `novel_pose_A` | Generate 360-degree view with A-pose |
+
+## Model Downloads
+
+The setup script downloads:
+- IDOL checkpoint: ~1.4GB
+- Sapiens model: ~3.8GB
 
 ## Citation
 
@@ -68,4 +91,5 @@ python api.py
 
 ## License
 
-MIT License
+Please refer to the original IDOL repository for licensing terms.
+SMPL-X models are subject to their own license agreement.
