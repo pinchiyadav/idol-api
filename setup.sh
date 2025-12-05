@@ -24,7 +24,7 @@ if [ -d "IDOL" ]; then
     echo "Repository already exists, updating..."
     cd IDOL && git pull && cd ..
 else
-    git clone --depth 1 https://github.com/yiyuzhuang/IDOL.git
+    git clone --depth 1 --progress https://github.com/yiyuzhuang/IDOL.git
 fi
 
 cd IDOL
@@ -32,70 +32,85 @@ cd IDOL
 # Install PyTorch with CUDA
 echo ""
 echo "[2/9] Installing PyTorch with CUDA support..."
-pip install torch==2.3.1+cu118 torchvision==0.18.1+cu118 torchaudio==2.3.1+cu118 \
-    --index-url https://download.pytorch.org/whl/cu118 -q
+pip install --progress-bar on torch==2.3.1+cu118 torchvision==0.18.1+cu118 torchaudio==2.3.1+cu118 \
+    --index-url https://download.pytorch.org/whl/cu118
 
 # Install core dependencies
 echo ""
 echo "[3/9] Installing core dependencies..."
-pip install diffusers==0.20.2 transformers accelerate huggingface-hub \
+pip install --progress-bar on diffusers==0.20.2 transformers accelerate huggingface-hub \
     numpy==1.26.4 scipy einops opencv-python matplotlib pillow \
-    omegaconf pytorch-lightning gradio fastapi uvicorn tqdm rembg tensorboard -q
+    omegaconf pytorch-lightning gradio fastapi uvicorn tqdm rembg tensorboard
 
 # Install PyTorch3D
 echo ""
-echo "[4/9] Installing PyTorch3D..."
-pip install "git+https://github.com/facebookresearch/pytorch3d.git@v0.7.7" -q || true
+echo "[4/9] Installing PyTorch3D (this may take a while)..."
+pip install --progress-bar on "git+https://github.com/facebookresearch/pytorch3d.git@v0.7.7" || echo "PyTorch3D installation skipped"
 
-# Create submodule directory
+# Create submodule directory and install Simple-KNN
 echo ""
 echo "[5/9] Installing Simple-KNN..."
 mkdir -p submodule
 cd submodule
-git clone --depth 1 https://gitlab.inria.fr/bkerbl/simple-knn.git 2>/dev/null || true
+if [ ! -d "simple-knn" ]; then
+    git clone --depth 1 https://gitlab.inria.fr/bkerbl/simple-knn.git
+fi
 cd simple-knn
-pip install . --no-build-isolation -q
+pip install . --no-build-isolation
 cd ../..
 
 # Install Gaussian Splatting
 echo ""
 echo "[6/9] Installing Gaussian Splatting..."
 cd submodule
-git clone --depth 1 --recursive https://github.com/graphdeco-inria/gaussian-splatting.git 2>/dev/null || true
+if [ ! -d "gaussian-splatting" ]; then
+    git clone --depth 1 --recursive https://github.com/graphdeco-inria/gaussian-splatting.git
+fi
 cd gaussian-splatting/submodules/diff-gaussian-rasterization
 
 # Fix header for C++17 compatibility
-sed -i 's/#include <iostream>/#include <iostream>\n#include <cstdint>/g' cuda_rasterizer/rasterizer_impl.h 2>/dev/null || true
+if ! grep -q "cstdint" cuda_rasterizer/rasterizer_impl.h; then
+    sed -i 's/#include <iostream>/#include <iostream>\n#include <cstdint>/g' cuda_rasterizer/rasterizer_impl.h
+fi
 
-TORCH_CUDA_ARCH_LIST="8.6" pip install . --no-build-isolation -q || true
+echo "Building diff-gaussian-rasterization..."
+TORCH_CUDA_ARCH_LIST="8.6" pip install . --no-build-isolation || echo "diff-gaussian-rasterization build skipped"
 cd ../../..
 
 # Install Sapiens
 echo ""
 echo "[7/9] Installing Sapiens..."
-git clone --depth 1 https://github.com/facebookresearch/sapiens 2>/dev/null || true
+if [ ! -d "sapiens" ]; then
+    git clone --depth 1 https://github.com/facebookresearch/sapiens
+fi
 cd sapiens/engine
-pip install -e . -q || true
+pip install -e . || echo "Sapiens engine skipped"
 cd ../pretrain
-pip install -e . -q || true
+pip install -e . || echo "Sapiens pretrain skipped"
 cd ../../..
 
 # Install deformation module
 echo ""
 echo "[8/9] Installing deformation module..."
-python setup.py develop 2>/dev/null || true
+python setup.py develop 2>/dev/null || echo "Deformation module skipped"
 
 # Download pretrained models
 echo ""
 echo "[9/9] Downloading pretrained models..."
 mkdir -p work_dirs/ckpt
-wget -q https://huggingface.co/yiyuzhuang/IDOL/resolve/main/model.ckpt \
-    -O work_dirs/ckpt/model.ckpt 2>/dev/null || echo "Model download skipped"
-wget -q https://huggingface.co/yiyuzhuang/IDOL/resolve/main/sapiens_1b_epoch_173_torchscript.pt2 \
-    -O work_dirs/ckpt/sapiens_1b_epoch_173_torchscript.pt2 2>/dev/null || echo "Sapiens model download skipped"
+echo "Downloading IDOL model checkpoint..."
+wget --progress=bar:force https://huggingface.co/yiyuzhuang/IDOL/resolve/main/model.ckpt \
+    -O work_dirs/ckpt/model.ckpt 2>&1 || echo "Model download skipped"
+echo "Downloading Sapiens model..."
+wget --progress=bar:force https://huggingface.co/yiyuzhuang/IDOL/resolve/main/sapiens_1b_epoch_173_torchscript.pt2 \
+    -O work_dirs/ckpt/sapiens_1b_epoch_173_torchscript.pt2 2>&1 || echo "Sapiens model download skipped"
 
 # Copy API files
-cp ../api.py . 2>/dev/null || true
+echo ""
+echo "Copying API files..."
+cd ..
+cp api.py IDOL/ 2>/dev/null || true
+cd IDOL
 
 echo ""
 echo "=============================================="
