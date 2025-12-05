@@ -29,11 +29,11 @@ fi
 
 cd IDOL
 
-# Install PyTorch with CUDA
+# Install PyTorch with CUDA (matching system CUDA 12.x)
 echo ""
 echo "[2/9] Installing PyTorch with CUDA support..."
-pip install --progress-bar on torch==2.3.1+cu118 torchvision==0.18.1+cu118 torchaudio==2.3.1+cu118 \
-    --index-url https://download.pytorch.org/whl/cu118
+pip install --progress-bar on torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 \
+    --index-url https://download.pytorch.org/whl/cu124
 
 # Install core dependencies
 echo ""
@@ -45,7 +45,7 @@ pip install --progress-bar on diffusers==0.20.2 transformers accelerate huggingf
 # Install PyTorch3D
 echo ""
 echo "[4/9] Installing PyTorch3D (this may take a while)..."
-pip install --progress-bar on "git+https://github.com/facebookresearch/pytorch3d.git@v0.7.7" || echo "PyTorch3D installation skipped"
+pip install --progress-bar on "git+https://github.com/facebookresearch/pytorch3d.git@stable" || echo "PyTorch3D installation skipped"
 
 # Create submodule directory and install Simple-KNN
 echo ""
@@ -74,7 +74,7 @@ if ! grep -q "cstdint" cuda_rasterizer/rasterizer_impl.h; then
 fi
 
 echo "Building diff-gaussian-rasterization..."
-TORCH_CUDA_ARCH_LIST="8.6" pip install . --no-build-isolation || echo "diff-gaussian-rasterization build skipped"
+pip install . --no-build-isolation || echo "diff-gaussian-rasterization build skipped"
 cd ../../..
 
 # Install Sapiens
